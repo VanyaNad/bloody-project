@@ -23,6 +23,5 @@ urlpatterns = [
     path('set-password/', auth_views.PasswordChangeView.as_view(template_name='blog/set_password.html'), name='set_password'),
     path('<int:year>/<int:month>/', views.ArticlesByDateView.as_view(), name='articles_by_date'),
     path('topics/create/', views.CreateTopicView.as_view(), name='create_topic'),
-    path('set-password/', views.PasswordChangeView.as_view(template_name='blog/set_password.html'), name='set_password'),
     path('set-password/done/', PasswordChangeDoneView.as_view(template_name='blog/password_change_done.html'), name='password_change_done'),
 ]
