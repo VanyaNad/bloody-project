@@ -98,8 +98,7 @@ class DeleteArticleView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy('index')
 
 
-
-class TopicListView(ListView):
+class TopicListView(LoginRequiredMixin, ListView):
     model = Topic
     template_name = 'blog/topic_list.html'
     context_object_name = 'topics'
@@ -133,7 +132,7 @@ class ArticlesByDateView(LoginRequiredMixin, ListView):
         return Article.objects.filter(created_at__year=year, created_at__month=month)
 
 
-class ProfileView(TemplateView):
+class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = 'blog/profile.html'
 
     def get_context_data(self, **kwargs):
@@ -201,7 +200,7 @@ class AddCommentView(LoginRequiredMixin, View):
 
 
 @method_decorator(staff_member_required, name='dispatch')
-class CreateTopicView(View):
+class CreateTopicView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         form = TopicForm()
         return render(request, 'blog/create_topic.html', {'form': form})
