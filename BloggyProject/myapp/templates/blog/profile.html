@@ -1,0 +1,60 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ user.username }}</h1>
+<p>Email: {{ user.email }}</p>
+ <form method="post" action="{% url 'set_password' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit">Change Password</button>
+            </form>
+
+ <form method="post" action="{% url 'delete_profile' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit">Delete Profile</button>
+            </form>
+<h2>Your Subscribed Topics</h2>
+<ul>
+    {% if subscribed_topics %}
+        {% for subscription in subscribed_topics %}
+            <li>
+                {{ subscription.topic.title }}
+                <form method="post" action="{% url 'unsubscribe_from_topic' subscription.topic.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Unsubscribe</button>
+                </form>
+            </li>
+        {% endfor %}
+    {% else %}
+        <p>You haven't subscribed to any topics yet. <a href="{% url 'topic_list' %}">Browse Topics</a>.</p>
+    {% endif %}
+</ul>
+
+<h2>Your Articles</h2>
+<ul>
+    {% if user_articles %}
+        {% for article in user_articles %}
+            <li>
+                <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a> ({{ article.created_at|date:"M d, Y" }})
+            </li>
+        {% endfor %}
+    {% else %}
+        <p>You haven't written any articles yet. <a href="{% url 'create_article' %}">Create your first article</a>.</p>
+    {% endif %}
+</ul>
+
+<h2>Your Comments</h2>
+<ul>
+    {% if user_comments %}
+        {% for comment in user_comments %}
+            <li>
+                "{{ comment.content }}" on <a href="{% url 'article_detail' comment.article.id %}">{{ comment.article.title }}</a> ({{ comment.created_at|date:"M d, Y" }})
+            </li>
+        {% endfor %}
+    {% else %}
+        <p>You haven't posted any comments yet.</p>
+    {% endif %}
+</ul>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h1>Welcome to the Blog!</h1>
+<ul>
+    {% for article in articles %}
+        <li>
+            <a href="{% url 'article_detail' article.id %}">{{ article.title }}</a>
+            <small>by {{ article.author }}</small>
+        </li>
+    {% endfor %}
+    <p>Browse articles by date:</p>
+    <a href="{% url 'articles_by_date' year=2025 month=1 %}">January 2025</a>
+    <a href="{% url 'articles_by_date' year=2025 month=2 %}">February 2025</a>
+</ul>
+
+{% if not articles %}
+    <p>No articles available. <a href="{% url 'create_article' %}">Create one</a>!</p>
+{% endif %}
+{% endblock %}
