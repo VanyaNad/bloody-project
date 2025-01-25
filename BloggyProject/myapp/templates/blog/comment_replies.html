@@ -1,0 +1,10 @@
+<ul>
+    {% for reply in comments %}
+        <li>
+            <p>{{ reply.content }} - <strong>{{ reply.author }}</strong></p>
+            {% if reply.replies.exists %}
+                {% include 'blog/comment_replies.html' with comments=reply.replies.all %}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

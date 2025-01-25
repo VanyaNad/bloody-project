@@ -1,11 +1,9 @@
-# Create your views here.
 from django.contrib.auth import logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import (
@@ -15,27 +13,20 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     FormView,
-    TemplateView,
+    TemplateView, RedirectView,
 )
 from .models import Article, Topic, Comment, Subscription
 from .forms import ArticleForm, CommentForm, TopicForm
 
 
-class RegisterView(View):
-    def get(self, request):
-        form = UserCreationForm()
-        return render(request, 'blog/register.html', {'form': form})
+class RegisterView(FormView):
+    template_name = 'blog/register.html'
+    form_class = UserCreationForm
+    success_url = reverse_lazy('login')
 
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
-
-    def post(self, request):
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('login')
-        return render(request, 'blog/register.html', {'form': form})
 
 
 class ArticleListView(LoginRequiredMixin, ListView):
@@ -150,64 +141,76 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SubscribeToTopicView(LoginRequiredMixin, View):
-    def post(self, request, topic_id, *args, **kwargs):
+class SubscribeToTopicView(LoginRequiredMixin, RedirectView):
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        topic_id = kwargs['topic_id']
         topic = get_object_or_404(Topic, id=topic_id)
-        if request.user.is_authenticated:
-            Subscription.objects.get_or_create(user=request.user, topic=topic)
-        return redirect('topic_list')
+        Subscription.objects.get_or_create(user=self.request.user, topic=topic)
+        return reverse('topic_list')
 
 
-class UnsubscribeFromTopicView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        topic = get_object_or_404(Topic, id=kwargs['topic_id'])
-        Subscription.objects.filter(user=request.user, topic=topic).delete()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+class UnsubscribeFromTopicView(LoginRequiredMixin, RedirectView):
+    permanent = False
+
+    def get_redirect_url(self, *args, **kwargs):
+        topic_id = kwargs['topic_id']
+        topic = get_object_or_404(Topic, id=topic_id)
+        Subscription.objects.filter(user=self.request.user, topic=topic).delete()
+        # Redirect to the previous page or home if no referer exists
+        return self.request.META.get('HTTP_REFERER', '/')
 
 
-class DeleteProfileView(LoginRequiredMixin, View):
-    template_name = 'blog/delete_profile.html'
+class DeleteProfileView(LoginRequiredMixin, RedirectView):
+    pattern_name = 'login'
+    permanent = False
 
-    def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        logout(request)
+    def get_redirect_url(self, *args, **kwargs):
+        user = self.request.user
+        logout(self.request)
         user.delete()
-        return redirect('login')
+        return super().get_redirect_url(*args, **kwargs)
 
 
-class AddCommentView(LoginRequiredMixin, View):
-    def post(self, request, pk, *args, **kwargs):
+class AddCommentView(LoginRequiredMixin, FormView):
+    template_name = 'blog/article_detail.html'
+    form_class = CommentForm
+
+    def form_valid(self, form):
+        pk = self.kwargs.get('pk')
         article = get_object_or_404(Article, pk=pk)
         parent_comment = None
-
-        # Check if replying to a comment
-        if 'parent_id' in request.POST:
-            parent_id = request.POST.get('parent_id')
+        if 'parent_id' in self.request.POST:
+            parent_id = self.request.POST.get('parent_id')
             parent_comment = get_object_or_404(Comment, id=parent_id)
+        comment = form.save(commit=False)
+        comment.author = self.request.user
+        comment.article = article
+        comment.parent = parent_comment
+        comment.save()
 
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.author = request.user
-            comment.article = article
-            comment.parent = parent_comment
-            comment.save()
-            return redirect('article_detail', pk=article.pk)
-        return render(request, 'blog/article_detail.html', {'form': form, 'article': article})
+        return redirect('article_detail', pk=article.pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+        context['article'] = get_object_or_404(Article, pk=pk)
+        return context
 
 
 @method_decorator(staff_member_required, name='dispatch')
-class CreateTopicView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        form = TopicForm()
-        return render(request, 'blog/create_topic.html', {'form': form})
+class CreateTopicView(LoginRequiredMixin, FormView):
+    template_name = 'blog/create_topic.html'
+    form_class = TopicForm
+    success_url = '/topics/'
 
-    def post(self, request, *args, **kwargs):
-        form = TopicForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('topic_list')
-        return render(request, 'blog/create_topic.html', {'form': form})
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+@method_decorator(staff_member_required, name='dispatch')
+class DeleteTopicView(LoginRequiredMixin, DeleteView):
+    model = Topic
+    template_name = 'blog/delete_topic.html'
+    success_url = reverse_lazy('topic_list')

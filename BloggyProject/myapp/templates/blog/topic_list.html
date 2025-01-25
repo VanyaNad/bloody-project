@@ -19,6 +19,12 @@
                         {% csrf_token %}
                         <button type="submit">Subscribe</button>
                     </form>
+                    {% if user.is_staff %}
+                <form method="post" action="{% url 'delete_topic' topic.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            {% endif %}
                 {% endif %}
             {% else %}
                 <p><a href="{% url 'login' %}">Log in</a> to subscribe.</p>

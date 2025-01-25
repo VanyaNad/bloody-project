@@ -5,15 +5,17 @@
 {% block content %}
 <h1>Welcome, {{ user.username }}</h1>
 <p>Email: {{ user.email }}</p>
- <form method="post" action="{% url 'set_password' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit">Change Password</button>
-            </form>
 
- <form method="post" action="{% url 'delete_profile' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit">Delete Profile</button>
-            </form>
+<form method="post" action="{% url 'set_password' %}" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit">Change Password</button>
+</form>
+
+<form method="post" action="{% url 'delete_profile' %}" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit">Delete Profile</button>
+</form>
+
 <h2>Your Subscribed Topics</h2>
 <ul>
     {% if subscribed_topics %}
@@ -49,12 +51,14 @@
     {% if user_comments %}
         {% for comment in user_comments %}
             <li>
-                "{{ comment.content }}" on <a href="{% url 'article_detail' comment.article.id %}">{{ comment.article.title }}</a> ({{ comment.created_at|date:"M d, Y" }})
+                <p>{{ comment.content }} - <strong>{{ comment.author }}</strong></p>
+                {% if comment.replies.exists %}
+                    {% include 'blog/comment_replies.html' with comments=comment.replies.all %}
+                {% endif %}
             </li>
         {% endfor %}
     {% else %}
-        <p>You haven't posted any comments yet.</p>
+        <p>You haven't commented on any articles yet.</p>
     {% endif %}
 </ul>
-
 {% endblock %}
