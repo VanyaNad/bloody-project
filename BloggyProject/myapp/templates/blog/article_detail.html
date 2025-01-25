@@ -1,0 +1,51 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ article.title }}{% endblock %}
+
+{% block content %}
+<h1>{{ article.title }}</h1>
+<p>{{ article.content }}</p>
+<p><strong>Author:</strong> {{ article.author }}</p>
+
+<hr>
+
+{% if user == article.author %}
+    <a href="{% url 'update_article' article.id %}" class="btn btn-primary">Edit Article</a>
+    <a href="{% url 'delete_article' article.id %}" class="btn btn-primary">Delete Article</a>
+{% endif %}
+
+<h2>Comments</h2>
+<ul>
+    {% for comment in top_level_comments %}
+        <li>
+            <p><strong>{{ comment.author }}</strong> ({{ comment.created_at|date:"M d, Y" }}):</p>
+            <p>"{{ comment.content }}"</p>
+
+            <!-- Form for replying to a comment -->
+            <form method="post" action="{% url 'add_comment' article.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                <textarea name="content" placeholder="Reply to this comment" rows="2" required></textarea>
+                <button type="submit">Reply</button>
+            </form>
+
+            {% if comment.replies.exists %}
+                <ul>
+                    {% include "blog/comment.html" with comments=comment.replies.all %}
+                </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
+<!-- Form for adding a new comment -->
+<hr>
+<h3>Leave a Comment</h3>
+<form method="post" action="{% url 'add_comment' article.id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Post Comment</button>
+</form>
+<p>Browse articles by date:</p>
+
+{% endblock %}

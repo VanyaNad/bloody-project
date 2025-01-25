@@ -1,0 +1,38 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Topics{% endblock %}
+
+{% block content %}
+<h1>Topics</h1>
+<ul>
+    {% for topic in topics %}
+        <li>
+            <strong>{{ topic.title }}</strong>
+            {% if user.is_authenticated %}
+                {% if topic.is_subscribed %}
+                    <form method="post" action="{% url 'unsubscribe_from_topic' topic.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit">Unsubscribe</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'subscribe_to_topic' topic.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit">Subscribe</button>
+                    </form>
+                    {% if user.is_staff %}
+                <form method="post" action="{% url 'delete_topic' topic.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            {% endif %}
+                {% endif %}
+            {% else %}
+                <p><a href="{% url 'login' %}">Log in</a> to subscribe.</p>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% if user.is_staff %}
+    <a href="{% url 'create_topic' %}">Create Topic</a>
+{% endif %}
+{% endblock %}
